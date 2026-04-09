@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>English Chat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --accent: #6c63ff; --accent2: #a78bfa; --text: #e8e8f0;
+    --muted: #7a7a9a; --green: #34d399; --yellow: #fbbf24; --red: #f87171;
+    --radius: 14px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
+  #setup-screen { display: flex; flex-direction: column; align-items: center; height: 100%; overflow-y: auto; padding: 1.5rem 1rem calc(1.5rem + var(--safe-bottom)); padding-top: calc(1.5rem + var(--safe-top)); gap: 1.2rem; -webkit-overflow-scrolling: touch; }
+  .logo { text-align: center; padding-top: 0.5rem; }
+  .logo h1 { font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .logo p { color: var(--muted); margin-top: 0.3rem; font-size: 0.88rem; }
+  .card { background: var(--surface); border: 1px solid #2a2d40; border-radius: var(--radius); padding: 1.2rem; width: 100%; max-width: 480px; }
+  .card h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.75rem; }
+  .api-input-wrap { display: flex; gap: 0.5rem; align-items: center; }
+  input[type="password"] { flex: 1; background: var(--surface2); border: 1px solid #2a2d40; border-radius: 10px; color: var(--text); padding: 0.85rem 1rem; font-size: 16px; outline: none; transition: border-color 0.2s; min-height: 48px; }
+  input:focus { border-color: var(--accent); }
+  .theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+  .theme-card { background: var(--surface2); border: 2px solid transparent; border-radius: 10px; padding: 0.75rem 0.4rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; min-height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .theme-card:active { opacity: 0.75; }
+  .theme-card.selected { border-color: var(--accent); background: #2a2642; }
+  .theme-card .emoji { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  .theme-card .name { font-size: 0.72rem; font-weight: 700; }
+  .theme-card .desc { font-size: 0.62rem; color: var(--muted); margin-top: 0.1rem; }
+  .level-tabs { display: flex; gap: 0.5rem; }
+  .level-tab { flex: 1; padding: 0.7rem 0.4rem; background: var(--surface2); border: 2px solid transparent; border-radius: 10px; text-align: center; cursor: pointer; transition: border-color 0.15s; font-size: 0.82rem; font-weight: 700; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .level-tab:active { opacity: 0.75; }
+  .level-tab.selected { border-color: var(--accent); background: #2a2642; }
+  .level-tab .lv-label { color: var(--muted); font-size: 0.65rem; font-weight: 400; margin-top: 0.15rem; }
+  .start-wrap { width: 100%; max-width: 480px; }
+  .btn { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 0.9rem 1.4rem; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; min-height: 52px; width: 100%; display: flex; align-items: center; justify-content: center; }
+  .btn:active { transform: scale(0.97); opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  #chat-screen { display: none; flex-direction: column; height: 100%; padding-top: var(--safe-top); }
+  .chat-header { display: flex; align-items: center; gap: 0.8rem; padding: 0.75rem 1rem; background: var(--surface); border-bottom: 1px solid #2a2d40; flex-shrink: 0; }
+  .back-btn { background: var(--surface2); border: none; color: var(--text); cursor: pointer; font-size: 1rem; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-header-info { flex: 1; min-width: 0; }
+  .chat-header-info h2 { font-size: 0.95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-header-info p { font-size: 0.7rem; color: var(--muted); }
+  .status-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+  #messages { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1rem; display: flex; flex-direction: column; gap: 0.9rem; -webkit-overflow-scrolling: touch; }
+  .msg { display: flex; flex-direction: column; max-width: 85%; }
+  .msg.ai { align-self: flex-start; }
+  .msg.user { align-self: flex-end; }
+  .msg-label { font-size: 0.65rem; color: var(--muted); margin-bottom: 0.25rem; padding: 0 0.3rem; }
+  .msg.user .msg-label { text-align: right; }
+  .bubble { padding: 0.8rem 0.95rem; border-radius: var(--radius); font-size: 0.9rem; line-height: 1.65; word-break: break-word; }
+  .msg.ai .bubble { background: var(--surface); border: 1px solid #2a2d40; border-top-left-radius: 4px; }
+  .msg.user .bubble { background: var(--accent); color: white; border-top-right-radius: 4px; }
+  .feedback-block { margin-top: 0.65rem; padding: 0.65rem 0.8rem; background: var(--surface2); border-radius: 8px; border-left: 3px solid var(--yellow); font-size: 0.82rem; line-height: 1.6; }
+  .feedback-block.good { border-left-color: var(--green); }
+  .fb-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.3rem; color: var(--yellow); }
+  .feedback-block.good .fb-title { color: var(--green); }
+  .native-tag { display: inline-block; background: #2a2642; color: var(--accent2); font-size: 0.78rem; padding: 0.1rem 0.45rem; border-radius: 4px; margin: 0.1rem; }
+  .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 0.7rem 1rem; background: var(--surface); border: 1px solid #2a2d40; border-radius: var(--radius); border-top-left-radius: 4px; width: fit-content; }
+  .typing-indicator span { width: 7px; height: 7px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-6px); opacity: 1; } }
+  .input-area { display: flex; gap: 0.5rem; align-items: flex-end; padding: 0.7rem 0.8rem; padding-bottom: calc(0.7rem + var(--safe-bottom)); background: var(--surface); border-top: 1px solid #2a2d40; flex-shrink: 0; }
+  #user-input { flex: 1; background: var(--surface2); border: 1px solid #2a2d40; border-radius: 22px; color: var(--text); padding: 0.7rem 1rem; font-size: 16px; resize: none; max-height: 110px; outline: none; transition: border-color 0.2s; font-family: inherit; line-height: 1.5; -webkit-appearance: none; }
+  #user-input:focus { border-color: var(--accent); }
+  #user-input::placeholder { color: var(--muted); }
+  #send-btn { width: 44px; height: 44px; border-radius: 50%; padding: 0; font-size: 1.1rem; flex-shrink: 0; background: var(--accent); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s, transform 0.1s; }
+  #send-btn:active { transform: scale(0.9); }
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-thumb { background: #2a2d40; border-radius: 2px; }
+  @supports (height: 100dvh) { html, body { height: 100dvh; } #chat-screen { height: 100dvh; } }
+</style>
+</head>
+<body>
+<div id="setup-screen">
+  <div class="logo">
+    <h1>🗣 English Chat</h1>
+    <p>ネイティブの言い回しで日常会話を練習しよう</p>
+  </div>
+  <div class="card">
+    <h2>Gemini API Key</h2>
+    <div class="api-input-wrap">
+      <input type="password" id="api-key-input" placeholder="AIza..." autocomplete="off">
+    </div>
+  </div>
+  <div class="card">
+    <h2>テーマを選ぶ</h2>
+    <div class="theme-grid">
+      <div class="theme-card selected" data-theme="cafe"><span class="emoji">☕</span><span class="name">カフェ</span><span class="desc">注文・雑談</span></div>
+      <div class="theme-card" data-theme="work"><span class="emoji">💼</span><span class="name">職場</span><span class="desc">仕事の会話</span></div>
+      <div class="theme-card" data-theme="travel"><span class="emoji">✈️</span><span class="name">旅行</span><span class="desc">観光・移動</span></div>
+      <div class="theme-card" data-theme="friends"><span class="emoji">🎉</span><span class="name">友達と</span><span class="desc">パーティ・遊び</span></div>
+      <div class="theme-card" data-theme="food"><span class="emoji">🍕</span><span class="name">食事</span><span class="desc">レストラン</span></div>
+      <div class="theme-card" data-theme="shopping"><span class="emoji">🛍️</span><span class="name">ショッピング</span><span class="desc">買い物</span></div>
+      <div class="theme-card" data-theme="hobbies"><span class="emoji">🎮</span><span class="name">趣味</span><span class="desc">週末・余暇</span></div>
+      <div class="theme-card" data-theme="health"><span class="emoji">🏃</span><span class="name">健康</span><span class="desc">運動・体調</span></div>
+      <div class="theme-card" data-theme="smalltalk"><span class="emoji">💬</span><span class="name">雑談</span><span class="desc">フリートーク</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>レベル</h2>
+    <div class="level-tabs">
+      <div class="level-tab selected" data-level="beginner">初級<span class="lv-label">簡単な表現</span></div>
+      <div class="level-tab" data-level="intermediate">中級<span class="lv-label">自然な会話</span></div>
+      <div class="level-tab" data-level="advanced">上級<span class="lv-label">スラング込み</span></div>
+    </div>
+  </div>
+  <div class="start-wrap">
+    <button class="btn" id="start-btn" onclick="startChat()">会話を始める →</button>
+  </div>
+</div>
+<div id="chat-screen">
+  <div class="chat-header">
+    <button class="back-btn" onclick="goBack()">←</button>
+    <div class="chat-header-info">
+      <h2 id="chat-title">Café conversation</h2>
+      <p id="chat-subtitle">ネイティブと練習中</p>
+    </div>
+    <div class="status-dot"></div>
+  </div>
+  <div id="messages"></div>
+  <div class="input-area">
+    <textarea id="user-input" rows="1" placeholder="英語で返事してみよう..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button id="send-btn" onclick="sendMessage()">↑</button>
+  </div>
+</div>
+<script>
+const THEMES={cafe:{emoji:"☕",ja:"カフェ",en:"Café / Coffee Shop"},work:{emoji:"💼",ja:"職場",en:"Office / Workplace"},travel:{emoji:"✈️",ja:"旅行",en:"Travel / Sightseeing"},friends:{emoji:"🎉",ja:"友達と",en:"Hanging out with Friends"},food:{emoji:"🍕",ja:"食事",en:"Food & Restaurants"},shopping:{emoji:"🛍️",ja:"ショッピング",en:"Shopping"},hobbies:{emoji:"🎮",ja:"趣味",en:"Hobbies & Weekend"},health:{emoji:"🏃",ja:"健康",en:"Health & Fitness"},smalltalk:{emoji:"💬",ja:"雑談",en:"Small Talk / Random Chat"}};
+const LEVELS={beginner:"Use simple, clear sentences. Avoid slang. Speak like you would to someone just learning English.",intermediate:"Use natural everyday English with contractions, common idioms, and casual expressions natives actually use.",advanced:"Use natural spoken English including slang, phrasal verbs, idioms, and colloquial expressions freely."};
+let apiKey="",selectedTheme="cafe",selectedLevel="beginner",conversationHistory=[],isTyping=false;
+document.querySelectorAll(".theme-card").forEach(c=>{c.addEventListener("click",()=>{document.querySelectorAll(".theme-card").forEach(x=>x.classList.remove("selected"));c.classList.add("selected");selectedTheme=c.dataset.theme;});});
+document.querySelectorAll(".level-tab").forEach(t=>{t.addEventListener("click",()=>{document.querySelectorAll(".level-tab").forEach(x=>x.classList.remove("selected"));t.classList.add("selected");selectedLevel=t.dataset.level;});});
+const savedKey=localStorage.getItem("gemini_api_key");
+if(savedKey)document.getElementById("api-key-input").value=savedKey;
+function goBack(){document.getElementById("chat-screen").style.display="none";document.getElementById("setup-screen").style.display="flex";conversationHistory=[];}
+function startChat(){apiKey=document.getElementById("api-key-input").value.trim();if(!apiKey){alert("Gemini APIキーを入力してください");return;}localStorage.setItem("gemini_api_key",apiKey);const theme=THEMES[selectedTheme];document.getElementById("chat-title").textContent=theme.emoji+" "+theme.ja;document.getElementById("chat-subtitle").textContent=theme.en+" — "+selectedLevel;document.getElementById("messages").innerHTML="";conversationHistory=[];document.getElementById("setup-screen").style.display="none";document.getElementById("chat-screen").style.display="flex";sendToGemini(null,true);}
+function buildSystemPrompt(){const theme=THEMES[selectedTheme];return "You are a friendly native English speaker having a casual conversation. The topic/setting is: ""+theme.en+"".
+YOUR ROLE:
+- Ask natural, engaging questions that real native speakers actually use in everyday life
+- "+LEVELS[selectedLevel]+"
+- Keep the conversation flowing naturally, one topic at a time
+AFTER THE USER RESPONDS (from the 2nd turn onwards), follow this EXACT format:
+---FEEDBACK---
+[Write feedback in Japanese. Check for:
+1. Grammar mistakes → explain clearly in Japanese with a correction
+2. Unnatural expressions → suggest a more native-sounding alternative using「ネイティブ表現: "..."」format
+3. Good points → praise what they did well
+If everything is perfect, just write: ✅ 完璧です！とても自然な英語ですね！]
+---END FEEDBACK---
+[Then write your natural English reply + ask the next question]
+IMPORTANT:
+- Feedback MUST be in Japanese
+- Use real spoken English (contractions: I'm, don't, gonna, kinda)
+- Do NOT use formal/textbook English";}
+async function sendToGemini(userMessage,isFirst=false){if(isTyping)return;isTyping=true;const md=document.getElementById("messages");const te=document.createElement("div");te.className="msg ai";te.id="typing";te.innerHTML='<div class="msg-label">AI</div><div class="typing-indicator"><span></span><span></span><span></span></div>';md.appendChild(te);scrollToBottom();if(!isFirst&&userMessage)conversationHistory.push({role:"user",parts:[{text:userMessage}]});const rb={system_instruction:{parts:[{text:buildSystemPrompt()}]},contents:isFirst?[{role:"user",parts:[{text:"Please start the conversation with a natural opening question for our topic."}]}]:conversationHistory,generationConfig:{temperature:0.85,maxOutputTokens:800}};try{const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+apiKey,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(rb)});if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"HTTP "+res.status);}const data=await res.json();const rawText=data.candidates?.[0]?.content?.parts?.[0]?.text||"";document.getElementById("typing")?.remove();const{feedback,reply}=parseResponse(rawText,isFirst);const am=document.createElement("div");am.className="msg ai";let html='<div class="msg-label">AI ネイティブ</div><div class="bubble">'+escapeHtml(reply);if(feedback){const ig=feedback.includes("✅")||feedback.includes("完璧")||feedback.includes("自然");html+='<div class="feedback-block '+(ig?"good":"")+'"><div class="fb-title">'+(ig?"✅ 添削":"📝 添削・フィードバック")+"</div>"+formatFeedback(feedback)+"</div>";}html+="</div>";am.innerHTML=html;md.appendChild(am);conversationHistory.push({role:"model",parts:[{text:rawText}]});scrollToBottom();}catch(e){document.getElementById("typing")?.remove();const em=document.createElement("div");em.className="msg ai";em.innerHTML='<div class="bubble" style="border-color:var(--red);color:var(--red);">エラー: '+escapeHtml(e.message)+"</div>";md.appendChild(em);scrollToBottom();}isTyping=false;}
+function parseResponse(text,isFirst){if(isFirst)return{feedback:null,reply:text.trim()};const m=text.match(/---FEEDBACK---([sS]*?)---END FEEDBACK---/);if(m)return{feedback:m[1].trim(),reply:text.replace(/---FEEDBACK---[sS]*?---END FEEDBACK---/,"").trim()};return{feedback:null,reply:text.trim()};}
+function formatFeedback(text){let html=escapeHtml(text);html=html.replace(/ネイティブ表現:s*(?:&quot;|")([^&"]+)(?:&quot;|")/g,'ネイティブ表現: <span class="native-tag">"$1"</span>');return html.replace(/
+/g,"<br>");}
+function escapeHtml(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+async function sendMessage(){const input=document.getElementById("user-input");const text=input.value.trim();if(!text||isTyping)return;input.value="";input.style.height="auto";const md=document.getElementById("messages");const um=document.createElement("div");um.className="msg user";um.innerHTML='<div class="msg-label">あなた</div><div class="bubble">'+escapeHtml(text)+"</div>";md.appendChild(um);scrollToBottom();await sendToGemini(text);}
+function handleKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height="auto";el.style.height=Math.min(el.scrollHeight,110)+"px";}
+function scrollToBottom(){const el=document.getElementById("messages");requestAnimationFrame(()=>el.scrollTop=el.scrollHeight);}
+</script>
+</body>
+</html>
